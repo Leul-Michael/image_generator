@@ -80,7 +80,7 @@ func (pr *PostgresUserRepo) Update(ctx context.Context, user model.User) error {
 	return nil
 }
 
-func (pr *PostgresUserRepo) UpdateField(ctx context.Context, id uuid.UUID, field string, value interface{}) error {
+func (pr *PostgresUserRepo) UpdateField(ctx context.Context, id uuid.UUID, field string, value any) error {
 	if err := pr.DB.WithContext(ctx).
 		Model(&model.User{}).
 		Where("id = ?", id).
@@ -121,9 +121,9 @@ func (pr *PostgresUserRepo) CreateOrUpdateUser(ctx context.Context, telegramID u
 
 	var user model.User
 	result := tx.Where("telegram_id = ?", telegramID).First(&user)
+
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			// Create new user
 			user = model.User{
 				FirstName:        firstName,
 				LastName:         lastName,
@@ -138,22 +138,31 @@ func (pr *PostgresUserRepo) CreateOrUpdateUser(ctx context.Context, telegramID u
 				return nil, fmt.Errorf("failed to create user: %w", err)
 			}
 
-			// Initialize user credits
 			imageCredits := model.UserCredit{
 				UserID:     user.ID,
 				CreditType: model.CreditTypeImage,
-				Balance:    0,
+				Credits:    0,
 			}
 			if err := tx.Create(&imageCredits).Error; err != nil {
 				tx.Rollback()
-				return nil, fmt.Errorf("failed to create user credits: %w", err)
+				return nil, fmt.Errorf("failed to create image credits: %w", err)
 			}
+
+			videoCredits := model.UserCredit{
+				UserID:     user.ID,
+				CreditType: model.CreditTypeVideo,
+				Credits:    0,
+			}
+			if err := tx.Create(&videoCredits).Error; err != nil {
+				tx.Rollback()
+				return nil, fmt.Errorf("failed to create video credits: %w", err)
+			}
+
 		} else {
 			tx.Rollback()
 			return nil, fmt.Errorf("failed to check user existence: %w", result.Error)
 		}
 	} else {
-		// Update existing user
 		user.FirstName = firstName
 		user.LastName = lastName
 		user.TelegramUsername = username
@@ -171,5 +180,13 @@ func (pr *PostgresUserRepo) CreateOrUpdateUser(ctx context.Context, telegramID u
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return &user, nil
+	var userWithCredits model.User
+	if err := pr.DB.WithContext(ctx).
+		Preload("UserCredits").
+		Where("id = ?", user.ID).
+		First(&userWithCredits).Error; err != nil {
+		return nil, fmt.Errorf("failed to reload user with relations: %w", err)
+	}
+
+	return &userWithCredits, nil
 }

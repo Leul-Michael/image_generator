@@ -1,4 +1,23 @@
 services:
+  app:
+    build:
+      context: .
+      target: development
+    container_name: go_image_generator_app
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./.env
+    volumes:
+      - .:/app
+      - go-modules:/go/pkg/mod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - image_generator_internal
+    restart: unless-stopped
+
   postgres:
     image: postgres:latest
     container_name: go_image_generator
@@ -10,17 +29,25 @@ services:
       - postgres:/var/lib/postgresql/data
     networks:
       - image_generator_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   adminer:
-    image: adminer
+    image: adminer:latest
     container_name: go_image_generator_adminer
     ports:
       - "8080:8080"
     networks:
       - image_generator_internal
+    restart: unless-stopped
 
 volumes:
   postgres:
+  go-modules:
 
 networks:
   image_generator_internal:

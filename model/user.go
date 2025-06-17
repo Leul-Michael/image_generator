@@ -7,7 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Base definition for all models
 type Base struct {
 	ID        uuid.UUID      `gorm:"primaryKey" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -44,17 +43,15 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
-// GetCreditBalance gets the balance for a specific credit type
 func (u *User) GetCreditBalance(tx *gorm.DB, creditType CreditType) (int, error) {
 	var userCredit UserCredit
 	err := tx.Where("user_id = ? AND credit_type = ?", u.ID, creditType).First(&userCredit).Error
 	if err != nil {
 		return 0, err
 	}
-	return userCredit.Balance, nil
+	return userCredit.Credits, nil
 }
-
-// GetCurrentBalance calculates the current credit balance by summing all transactions for a specific credit type
+	
 func (u *User) GetCurrentBalance(tx *gorm.DB, creditType CreditType) (int, error) {
 	var balance int
 	err := tx.Model(&Transaction{}).
@@ -64,7 +61,6 @@ func (u *User) GetCurrentBalance(tx *gorm.DB, creditType CreditType) (int, error
 	return balance, err
 }
 
-// HasEnoughCredits checks if the user has enough credits of a specific type
 func (u *User) HasEnoughCredits(tx *gorm.DB, creditType CreditType, required int) (bool, error) {
 	balance, err := u.GetCreditBalance(tx, creditType)
 	if err != nil {
@@ -73,7 +69,6 @@ func (u *User) HasEnoughCredits(tx *gorm.DB, creditType CreditType, required int
 	return balance >= required, nil
 }
 
-// GetTokenUsage gets the token usage statistics for a specific credit type
 func (u *User) GetTokenUsage(tx *gorm.DB, creditType CreditType) (*UserCredit, error) {
 	var userCredit UserCredit
 	err := tx.Where("user_id = ? AND credit_type = ?", u.ID, creditType).First(&userCredit).Error

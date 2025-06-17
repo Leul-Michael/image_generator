@@ -28,12 +28,16 @@ func New() (*App, error) {
 
 	app.DB.AutoMigrate(&model.User{}, &model.Category{}, &model.GeneratedImage{}, &model.ImageGenerationRequest{}, &model.Transaction{}, &model.UserCredit{}, &model.TrendingPrompt{})
 
+	if err := app.SeedCategories(); err != nil {
+		fmt.Printf("Warning: Failed to seed categories: %v\n", err)
+	}
+
 	err = app.connectToBot()
 	if err != nil {
 		return nil, fmt.Errorf("error: %w", err)
 	}
 
-	botHandler := handler.NewBotHandler(app.bot)
+	botHandler := handler.NewBotHandler(app.bot, app.DB)
 	botHandler.RegisterHandlers()
 
 	app.loadRoutes()
@@ -49,7 +53,6 @@ func (a *App) Start(ctx context.Context) error {
 
 	ch := make(chan error, 1)
 
-	// Start the bot
 	go func() {
 		fmt.Println("Starting bot...")
 		a.bot.Start()
@@ -72,7 +75,6 @@ func (a *App) Start(ctx context.Context) error {
 		if err := server.Shutdown(timeout); err != nil {
 			return fmt.Errorf("server shutdown failed: %w", err)
 		}
-		// Stop the bot
 		a.bot.Stop()
 	}
 	return nil
