@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: go_image_generator
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./.env
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    networks:
+      - image_generator_internal
+
+  adminer:
+    image: adminer
+    container_name: go_image_generator_adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - image_generator_internal
+
+volumes:
+  postgres:
+
+networks:
+  image_generator_internal:
