@@ -32,6 +32,10 @@ func New() (*App, error) {
 		fmt.Printf("Warning: Failed to seed categories: %v\n", err)
 	}
 
+	if err := app.SeedTrendingPrompts(); err != nil {
+		fmt.Printf("Warning: Failed to seed trending prompts: %v\n", err)
+	}
+
 	err = app.connectToBot()
 	if err != nil {
 		return nil, fmt.Errorf("error: %w", err)

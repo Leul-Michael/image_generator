@@ -29,20 +29,23 @@ type UserRepo interface {
 
 var ErrNotExist = errors.New("user not found")
 
-func (pr *PostgresUserRepo) GetById(ctx context.Context, id uuid.UUID) (model.User, error) {
+func (pr *PostgresUserRepo) GetById(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	var user model.User
 
-	err := pr.DB.WithContext(ctx).Model(&model.User{}).Where("id = ?", id).Select("id, first_name, last_name, email, phone_number, last_login, is_deactivated").First(&user).Error
+	err := pr.DB.WithContext(ctx).
+		Preload("UserCredits").
+		Where("id = ?", id).
+		First(&user).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return model.User{}, ErrNotExist
+			return nil, ErrNotExist
 		} else {
-			return model.User{}, fmt.Errorf("failed to get record: %w", err)
+			return nil, fmt.Errorf("failed to get record: %w", err)
 		}
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func (pr *PostgresUserRepo) EmailExists(ctx context.Context, email string) int64 {
@@ -101,6 +104,7 @@ func (pr *PostgresUserRepo) Delete(ctx context.Context, id uuid.UUID) error {
 func (pr *PostgresUserRepo) GetByTelegramID(ctx context.Context, telegramID uint) (*model.User, error) {
 	var user model.User
 	err := pr.DB.WithContext(ctx).
+		Preload("UserCredits").
 		Where("telegram_id = ?", telegramID).
 		First(&user).Error
 

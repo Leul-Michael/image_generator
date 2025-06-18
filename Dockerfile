@@ -38,7 +38,7 @@ EXPOSE 5000
 CMD ["air", "-c", ".air.toml"]
 
 # Production stage
-FROM alpine:3.18
+FROM alpine:3.18 AS production
 
 # Copy the built binary from the builder stage
 COPY --from=builder /app/main /main
