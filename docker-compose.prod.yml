@@ -47,3 +47,7 @@ services:
 volumes:
   postgres:
   go-modules:
+
+networks:
+  image_generator_internal:
+    driver: bridge  
