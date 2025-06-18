@@ -19,6 +19,8 @@ type GeneratedImage struct {
 	Error             *string   `gorm:"size:500" json:"error"`
 	GenerationTime    int       `gorm:"not null" json:"generation_time"` // Time taken to generate in seconds
 	CreditsUsed       int       `gorm:"not null" json:"credits_used"`
+	IsPrivate         bool      `gorm:"default:true" json:"is_private"`
+
 	// ChatGPT API specific fields
 	ModelUsed        string `gorm:"size:50" json:"model_used"`         // e.g., "dall-e-3"
 	PromptTokens     int    `gorm:"not null" json:"prompt_tokens"`     // Tokens used in the prompt

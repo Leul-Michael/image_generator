@@ -226,10 +226,48 @@ func (h *BotHandler) handleDepositCredits(c telebot.Context) error {
 		return fmt.Errorf("failed to get sender information")
 	}
 
+	// Create preset amount buttons
+	menu := &telebot.ReplyMarkup{
+		InlineKeyboard: [][]telebot.InlineButton{
+			{
+				{Text: "10 credits", Data: "deposit_10"},
+				{Text: "50 credits", Data: "deposit_50"},
+			},
+			{
+				{Text: "100 credits", Data: "deposit_100"},
+				{Text: "200 credits", Data: "deposit_200"},
+			},
+			{
+				{Text: "✏️ Custom Amount", Data: "deposit_custom"},
+			},
+			{
+				{Text: "🔙 Back to Credits", Data: "my_credits"},
+			},
+		},
+	}
+
+	message := "💰 Choose Deposit Amount\n\n" +
+		"Select how much you want to deposit:\n\n" +
+		"💡 Credit Conversion Rate:\n" +
+		"• 10 etb = 1 Image Credit\n\n" +
+		"Choose a preset amount or enter a custom amount:"
+
+	if c.Callback() != nil {
+		return c.Edit(message, menu)
+	}
+	return c.Send(message, menu)
+}
+
+func (h *BotHandler) handleDepositCustom(c telebot.Context) error {
+	sender := c.Sender()
+	if sender == nil {
+		return fmt.Errorf("failed to get sender information")
+	}
+
 	// Set user state to waiting for deposit amount
 	userStates[sender.ID] = &UserState{State: "waiting_deposit_amount"}
 
-	message := "💰 Deposit Credits\n\n" +
+	message := "💰 Custom Deposit Amount\n\n" +
 		"Please enter the amount you want to deposit:\n\n" +
 		"💡 Credit Conversion:\n" +
 		"• 10 etb = 1 Image Credit\n" +
@@ -239,10 +277,16 @@ func (h *BotHandler) handleDepositCredits(c telebot.Context) error {
 		"For example: If you deposit 15, only 10 will be used (1 credit).\n\n" +
 		"💬 Type your deposit amount or use /cancel to cancel:"
 
-	if c.Callback() != nil {
-		return c.Edit(message)
-	}
-	return c.Send(message)
+	return c.Edit(message)
+}
+
+func (h *BotHandler) handlePresetDeposit(c telebot.Context, amount int) error {
+	// Calculate credits (only multiples of 10)
+	creditsToAdd := amount / 10
+	unusedAmount := amount % 10
+
+	// Process the deposit directly
+	return h.processDeposit(c, amount, creditsToAdd, unusedAmount)
 }
 
 func (h *BotHandler) handleTrendingPrompts(c telebot.Context) error {
@@ -365,6 +409,16 @@ func (h *BotHandler) handleCallback(c telebot.Context) error {
 		return h.handleBackToMain(c)
 	case "deposit_credits":
 		return h.handleDepositCredits(c)
+	case "deposit_custom":
+		return h.handleDepositCustom(c)
+	case "deposit_10":
+		return h.handlePresetDeposit(c, 10)
+	case "deposit_50":
+		return h.handlePresetDeposit(c, 50)
+	case "deposit_100":
+		return h.handlePresetDeposit(c, 100)
+	case "deposit_200":
+		return h.handlePresetDeposit(c, 200)
 	}
 
 	// Handle category selection

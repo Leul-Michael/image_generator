@@ -84,6 +84,8 @@ func (h *UserHandler) HandleTelegramAuth(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("initData", initData)
+
 	valid, err := h.VerifyTelegramInitData(initData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("verification failed: %v", err)})
@@ -138,5 +140,133 @@ func (h *UserHandler) HandleTelegramAuth(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Authentication successful",
 		"user":    user,
+	})
+}
+
+func (h *UserHandler) HandleTelegramWebhook(c *gin.Context) {
+	// Handle Telegram webhook for additional integrations
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Webhook received",
+	})
+}
+
+func (h *UserHandler) VerifyTelegramUser(c *gin.Context) {
+	telegramID := c.Query("telegram_id")
+	if telegramID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "telegram_id is required"})
+		return
+	}
+
+	// You can add additional verification logic here
+	c.JSON(http.StatusOK, gin.H{
+		"verified":    true,
+		"telegram_id": telegramID,
+	})
+}
+
+func (h *UserHandler) GetCurrentUser(c *gin.Context) {
+	// This would typically require JWT middleware for authentication
+	// For now, we'll use telegram_id from query params
+	telegramID := c.Query("telegram_id")
+	if telegramID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "telegram_id is required"})
+		return
+	}
+
+	var telegramIDUint uint
+	fmt.Sscanf(telegramID, "%d", &telegramIDUint)
+
+	user, err := h.repo.GetByTelegramID(c.Request.Context(), telegramIDUint)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user": user,
+	})
+}
+
+func (h *UserHandler) UpdateCurrentUser(c *gin.Context) {
+	telegramID := c.Query("telegram_id")
+	if telegramID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "telegram_id is required"})
+		return
+	}
+
+	var updateData struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Lang      string `json:"lang"`
+	}
+
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+		return
+	}
+
+	var telegramIDUint uint
+	fmt.Sscanf(telegramID, "%d", &telegramIDUint)
+
+	user, err := h.repo.GetByTelegramID(c.Request.Context(), telegramIDUint)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Update user fields
+	if updateData.FirstName != "" {
+		user.FirstName = updateData.FirstName
+	}
+	if updateData.LastName != "" {
+		user.LastName = updateData.LastName
+	}
+	if updateData.Lang != "" {
+		user.Lang = updateData.Lang
+	}
+
+	if err := h.repo.Update(c.Request.Context(), *user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User updated successfully",
+		"user":    user,
+	})
+}
+
+func (h *UserHandler) GetUserCredits(c *gin.Context) {
+	telegramID := c.Query("telegram_id")
+	if telegramID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "telegram_id is required"})
+		return
+	}
+
+	var telegramIDUint uint
+	fmt.Sscanf(telegramID, "%d", &telegramIDUint)
+
+	user, err := h.repo.GetByTelegramID(c.Request.Context(), telegramIDUint)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"credits": user.UserCredits,
+	})
+}
+
+func (h *UserHandler) GetCategories(c *gin.Context) {
+	// This would get categories from the database
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Categories endpoint - to be implemented",
+	})
+}
+
+func (h *UserHandler) GetTrendingPrompts(c *gin.Context) {
+	// This would get trending prompts from the database
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Trending prompts endpoint - to be implemented",
 	})
 }

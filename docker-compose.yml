@@ -11,6 +11,7 @@ services:
     volumes:
       - .:/app
       - go-modules:/go/pkg/mod
+      - /app/tmp # Exclude tmp directory from host mount
     depends_on:
       postgres:
         condition: service_healthy

@@ -36,6 +36,7 @@ type User struct {
 	Role             Role         `gorm:"default:'user'" json:"role"`
 	IsDeactivated    bool         `gorm:"default:false" json:"is_deactivated"`
 	UserCredits      []UserCredit `gorm:"foreignKey:UserID" json:"user_credits"`
+	Lang             string       `gorm:"default:'en'" json:"lang"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
@@ -51,7 +52,7 @@ func (u *User) GetCreditBalance(tx *gorm.DB, creditType CreditType) (int, error)
 	}
 	return userCredit.Credits, nil
 }
-	
+
 func (u *User) GetCurrentBalance(tx *gorm.DB, creditType CreditType) (int, error) {
 	var balance int
 	err := tx.Model(&Transaction{}).

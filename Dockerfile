@@ -28,13 +28,22 @@ WORKDIR /app
 RUN apk add --no-cache git && \
     go install github.com/cosmtrek/air@v1.49.0
 
+# Copy go.mod and go.sum first to cache dependencies
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Create tmp directory for air
+RUN mkdir -p tmp
+
 # Copy the source code
 COPY . .
 
 # Expose the application port
 EXPOSE 5000
 
-# Run air for hot reloading
+# Run air for hot reloading with polling enabled
 CMD ["air", "-c", ".air.toml"]
 
 # Production stage
